@@ -1,1 +1,220 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoneyFlow</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #172033;
+    }
+
+    .app {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: #123b30;
+      color: white;
+      padding: 24px;
+      border-radius: 18px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+    }
+
+    .balance {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      margin-top: 16px;
+      border-radius: 16px;
+      box-shadow: 0 3px 12px #0000000d;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: bold;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 7px;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+
+    input, select {
+      border: 1px solid #cbd5e1;
+      background: white;
+    }
+
+    button {
+      border: none;
+      background: #13795b;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .transaction {
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+      overflow-wrap: anywhere;
+    }
+
+    .income {
+      color: #16804a;
+    }
+
+    .expense {
+      color: #c0392b;
+    }
+
+    .hint {
+      color: #64748b;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>MoneyFlow</h1>
+      <p>Your personal money manager</p>
+      <p>Total Balance</p>
+      <div class="balance" id="balance">₦0.00</div>
+    </header>
+
+    <section class="card">
+      <h2>Add a transaction</h2>
+
+      <label for="type">Transaction type</label>
+      <select id="type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+
+      <label for="description">Description</label>
+      <input id="description" placeholder="e.g. Salary or Food">
+
+      <label for="amount">Amount (₦)</label>
+      <input id="amount" type="number" min="0.01" step="0.01"
+        placeholder="Enter amount">
+
+      <button id="addButton" type="button">Add Transaction</button>
+      <p class="hint">Demo version: transactions are saved on this device.</p>
+    </section>
+
+    <section class="card">
+      <h2>Recent Transactions</h2>
+      <div id="transactions">No transactions yet.</div>
+    </section>
+  </main>
+
+  <script>
+    const amountInput = document.getElementById("amount");
+    const descriptionInput = document.getElementById("description");
+    const typeInput = document.getElementById("type");
+    const balanceDisplay = document.getElementById("balance");
+    const transactionsDisplay = document.getElementById("transactions");
+
+    let transactions = [];
+
+    try {
+      transactions = JSON.parse(
+        localStorage.getItem("moneyflow-transactions") || "[]"
+      );
+
+      if (!Array.isArray(transactions)) transactions = [];
+    } catch (error) {
+      transactions = [];
+    }
+
+    function formatMoney(amount) {
+      return new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: "NGN"
+      }).format(amount);
+    }
+
+    function renderTransactions() {
+      let balance = 0;
+      transactionsDisplay.replaceChildren();
+
+      if (transactions.length === 0) {
+        transactionsDisplay.textContent = "No transactions yet.";
+      }
+
+      transactions.slice().reverse().forEach(function (item) {
+        balance += item.type === "income" ? item.amount : -item.amount;
+
+        const row = document.createElement("div");
+        row.className = "transaction";
+
+        const title = document.createElement("strong");
+        title.textContent = item.description + " — ";
+        row.appendChild(title);
+
+        const value = document.createElement("span");
+        value.className = item.type;
+        value.textContent =
+          (item.type === "income" ? "+" : "-") +
+          formatMoney(item.amount);
+
+        row.appendChild(value);
+        transactionsDisplay.appendChild(row);
+      });
+
+      balanceDisplay.textContent = formatMoney(balance);
+    }
+
+    document.getElementById("addButton").addEventListener("click", function () {
+      const description = descriptionInput.value.trim();
+      const amount = Number(amountInput.value);
+      const type = typeInput.value;
+
+      if (!description || !Number.isFinite(amount) || amount <= 0) {
+        alert("Please enter a description and an amount greater than zero.");
+        return;
+      }
+
+      transactions.push({ description, amount, type });
+
+      try {
+        localStorage.setItem(
+          "moneyflow-transactions",
+          JSON.stringify(transactions)
+        );
+      } catch (error) {
+        alert("Could not save data on this device.");
+      }
+
+      descriptionInput.value = "";
+      amountInput.value = "";
+      renderTransactions();
+    });
+
+    renderTransactions();
+  </script>
+</body>
+</html>
+
